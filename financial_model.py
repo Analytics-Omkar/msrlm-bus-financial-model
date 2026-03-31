@@ -102,6 +102,8 @@ print("=" * 70)
 print("STAGE 4 — DATA LOADING")
 print("=" * 70)
 df = pd.read_csv("routes_data.csv")
+# ✅ Fix occupancy exceeding capacity
+df['effective_occupancy'] = df[['avg_occupancy_seats', 'total_seats']].min(axis=1)
 print(f"  Loaded {len(df)} routes.")
 print(df[["route_id","route_name","total_seats","ticket_price_inr",
           "fuel_cost_per_km_inr","avg_occupancy_seats"]].to_string(index=False))
@@ -131,10 +133,13 @@ df["depreciation_per_km_inr"]     = df["annual_depreciation_inr"] / df["annual_k
 df["depreciation_per_day_inr"]    = df["annual_depreciation_inr"] / df["operating_days_per_year"]
 
 # Daily revenue
-df["daily_revenue_inr"]           = (df["avg_occupancy_seats"]
-                                     * df["ticket_price_inr"]
-                                     * df["trips_per_day"] * 2)
-df["occupancy_pct"]               = (df["avg_occupancy_seats"] / df["total_seats"]) * 100
+df["daily_revenue_inr"] = (df["effective_occupancy"]
+                          * df["ticket_price_inr"]
+                          * df["trips_per_day"] * 2)
+df["occupancy_pct"] = (df["effective_occupancy"] / df["total_seats"]) * 100
+
+# ZP administrative fee
+df["annual_zp_fee_inr"] = 7000 * 12
 
 print("  Calculated columns added successfully.")
 print(f"  Annual km per bus: {df['annual_km'].values}")
@@ -151,10 +156,11 @@ print("=" * 70)
 
 df["annual_revenue_inr"]      = df["daily_revenue_inr"] * df["operating_days_per_year"]
 df["annual_operating_cost_inr"] = (df["annual_fuel_cost_inr"]
-                                   + df["annual_driver_salary_inr"]
-                                   + df["annual_conductor_salary_inr"]
-                                   + df["annual_maintenance_inr"]
-                                   + df["annual_misc_inr"])
+                                  + df["annual_driver_salary_inr"]
+                                  + df["annual_conductor_salary_inr"]
+                                  + df["annual_maintenance_inr"]
+                                  + df["annual_misc_inr"]
+                                  + df["annual_zp_fee_inr"])
 df["annual_total_cost_inr"]   = df["annual_operating_cost_inr"] + df["annual_depreciation_inr"]
 df["contribution_margin_inr"] = df["annual_revenue_inr"] - df["annual_operating_cost_inr"]
 df["net_profit_loss_inr"]     = df["annual_revenue_inr"] - df["annual_total_cost_inr"]
@@ -170,7 +176,7 @@ for _, row in df.iterrows():
     status = "✅ VIABLE" if row["net_profit_loss_inr"] > 0 else "⚠️  LOSS-MAKING"
     print(f"\n  Route : {row['route_name']}")
     print(f"    Seats / Ticket Price   : {int(row['total_seats'])} seats | ₹{row['ticket_price_inr']:,.0f}/seat")
-    print(f"    Avg Occupancy          : {row['avg_occupancy_seats']} seats ({row['occupancy_pct']:.1f}%)")
+    print(f"    Avg Occupancy          : {row['effective_occupancy']} seats ({row['occupancy_pct']:.1f}%)")
     print(f"    Annual Revenue         : ₹{row['annual_revenue_inr']:>12,.0f}")
     print(f"    Annual Operating Cost  : ₹{row['annual_operating_cost_inr']:>12,.0f}")
     print(f"    Annual Depreciation    : ₹{row['annual_depreciation_inr']:>12,.0f}")
@@ -206,10 +212,10 @@ df["be_occupancy_seats"] = (df["annual_total_cost_inr"]
                             / (df["ticket_price_inr"] * df["trips_per_day"] * 2
                                * df["operating_days_per_year"]))
 df["be_occupancy_pct"]   = (df["be_occupancy_seats"] / df["total_seats"]) * 100
-df["be_trips_per_day"]   = (df["annual_total_cost_inr"]
-                            / (df["avg_occupancy_seats"] * df["ticket_price_inr"] * 2
-                               * df["operating_days_per_year"]))
-df["gap_seats"]          = df["avg_occupancy_seats"] - df["be_occupancy_seats"]
+df["be_trips_per_day"] = (df["annual_total_cost_inr"]
+                         / (df["effective_occupancy"] * df["ticket_price_inr"] * 2
+                            * df["operating_days_per_year"]))
+df["gap_seats"] = df["effective_occupancy"] - df["be_occupancy_seats"]
 df["revenue_shortfall_inr"] = df["annual_total_cost_inr"] - df["annual_revenue_inr"]
 df["revenue_shortfall_inr"] = df["revenue_shortfall_inr"].clip(lower=0)
 
@@ -393,7 +399,7 @@ colors_sens = [C_TEAL, C_ORANGE]
 for idx, (_, row) in enumerate(df.iterrows()):
     nets = []
     for occ in occ_range:
-        seats = (occ/100) * row["total_seats"]
+        seats = min((occ/100) * row["total_seats"], row["total_seats"])
         rev   = seats * row["ticket_price_inr"] * row["trips_per_day"] * 2 * row["operating_days_per_year"]
         nets.append((rev - row["annual_total_cost_inr"]) / 1e5)
     ax4.plot(occ_range, nets, label=route_short[idx], color=colors_sens[idx], linewidth=2.5)
@@ -473,6 +479,8 @@ export_cols = [
     "book_value_inr","lease_annual_inr","ppp_annual_share_inr",
     "scrap_value_inr","recoverable_value_inr",
     "revenue_per_km_inr","cost_per_km_inr",
+    "effective_occupancy",
+    "annual_zp_fee_inr",
 ]
 
 # Sensitivity table as DataFrame
