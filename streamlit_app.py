@@ -176,14 +176,26 @@ df_base = load_and_compute()
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Override Assumptions")
-ticket_override  = st.sidebar.number_input("Ticket Price (₹/seat)", 500, 5000,
-                                            int(df_base["ticket_price_inr"].iloc[0]), step=50)
+
+# ✅ UPDATED TICKET PRICE CONTROL
+st.sidebar.markdown("#### 🎫 Ticket Pricing Policy Range")
+ticket_override  = st.sidebar.slider(
+    "Fare per Seat (₹)",
+    min_value=500,
+    max_value=2000,
+    value=int(np.clip(df_base["ticket_price_inr"].iloc[0], 500, 2000)),
+    step=50
+)
+
 fuel_override    = st.sidebar.number_input("Fuel Cost (₹/km)", 40, 200,
                                             int(df_base["fuel_cost_per_km_inr"].iloc[0]), step=5)
+
 occ_override_r1  = st.sidebar.slider("R001 Occupancy (seats)", 1, int(df_base["total_seats"].iloc[0]),
                                       int(df_base["avg_occupancy_seats_clamped"].iloc[0]))
+
 occ_override_r2  = st.sidebar.slider("R002 Occupancy (seats)", 1, int(df_base["total_seats"].iloc[1]),
                                       int(df_base["avg_occupancy_seats_clamped"].iloc[1]))
+
 current_age      = st.sidebar.slider("Bus Age (years)", 0, 15, 1)
 lease_pct        = st.sidebar.slider("Lease Fee (% of revenue)", 10, 60, 35)
 ppp_pct          = st.sidebar.slider("PPP Revenue Share to ZP (%)", 10, 50, 25)
