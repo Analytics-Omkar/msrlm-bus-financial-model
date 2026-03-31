@@ -110,7 +110,7 @@ def fig_to_bytes(fig):
 
 # ─── DATA LOADING & COMPUTATION ──────────────────────────────────────────────
 @st.cache_data
-def load_and_compute(csv_path="data/routes_data.csv"):
+def load_and_compute(csv_path="routes_data.csv"):
     df = pd.read_csv(csv_path)
 
     df["annual_km"]                   = (df["route_length_km"] * 2
