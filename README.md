@@ -172,9 +172,10 @@ Break-even    = Total Cost ÷ (₹1,450 × 4 trips × 180 days)
 
 ## 👤 Author
 
-**[Your Name]**  
-Policy & Finance Analysis Unit  
-Zilla Parishad / MSRLM, Dharashiv District, Maharashtra
+# Omkar Arun Wakchaure  
+# Live App
+# https://i785ohjlncegpchozkdswg.streamlit.app/
+
 
 **Skills demonstrated:**
 `Python` · `pandas` · `matplotlib` · `reportlab` · `Streamlit` · `Financial Modelling` · `Break-even Analysis` · `Asset Valuation` · `Public Policy Analysis` · `Data Visualisation`
